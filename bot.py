@@ -1,10 +1,10 @@
-import json, random, asyncio, os
+import json, random, os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, JobQueue
 
 TOKEN = os.getenv("BOT_TOKEN")
 CHANNEL_FREE = "@wazaif_yemen1"
-ADMIN_ID = int(os.getenv("ADMIN_ID", "772765410"))
+ADMIN_ID = int(os.getenv("ADMIN_ID", "5690562040"))
 PAY_NAME = "جمال عبد الناصر ناصر طالب"
 PAY_NUMBER = "772765410"
 PRICE = "2000 ريال يمني"
@@ -27,20 +27,17 @@ async def photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("✅ تم استلام الحوالة، سيتم تفعيلك خلال ساعة")
     await context.bot.forward_message(chat_id=ADMIN_ID, from_chat_id=update.effective_chat.id, message_id=update.message.message_id)
 
-async def post_job(app):
+async def post_job(context: ContextTypes.DEFAULT_TYPE):
     j = random.choice(JOBS)
     txt = f"💼 {j['title']}\n📍 {j['location']}\n💰 {j['salary']}\n✅ {j['note']}\n\n🔒 للتفاصيل: اشترك VIP\n💳 {PRICE}\n📱 {PAY_NUMBER} ({PAY_NAME})"
-    await app.bot.send_message(CHANNEL_FREE, txt)
+    await context.bot.send_message(CHANNEL_FREE, txt)
 
-async def main():
+def main():
     app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.PHOTO, photo))
-    await app.initialize()
-    await app.start()
-    while True:
-        await post_job(app)
-        await asyncio.sleep(14400)
+    app.job_queue.run_repeating(post_job, interval=14400, first=10)
+    app.run_polling()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
